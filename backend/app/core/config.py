@@ -1,10 +1,14 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Always resolve .env relative to this file → backend/.env
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Financial Forensics AI API"
     app_env: str = "development"
@@ -32,6 +36,12 @@ class Settings(BaseSettings):
     s3_bucket: str = "flatfiles"
 
     cache_ttl_seconds: int = 180
+
+    # Twilio (OTP + WhatsApp)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_verify_sid: str = ""
+    twilio_whatsapp_from: str = "whatsapp:+14155238886"
 
 
 @lru_cache

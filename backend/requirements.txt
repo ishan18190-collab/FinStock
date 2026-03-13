@@ -13,3 +13,4 @@ yfinance
 aiosqlite
 supervisor
 aioboto3==14.2.0
+twilio
