@@ -1,5 +1,8 @@
 import sqlite3
 import os
+import jwt
+from datetime import datetime, timedelta
+from typing import Optional
 from pathlib import Path
 
 from twilio.rest import Client
@@ -37,6 +40,17 @@ def _init_db():
 class AuthService:
     def __init__(self):
         _init_db()
+
+    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None):
+        settings = get_settings()
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expiry_minutes)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        return encoded_jwt
 
     async def send_otp(self, phone_number: str) -> dict:
         """Send OTP via Twilio Verify SMS."""
@@ -77,14 +91,22 @@ class AuthService:
         ).fetchone()
         conn.close()
 
+        user_data = {
+            "id": row[0],
+            "phone_number": row[1],
+            "is_verified": bool(row[2]),
+            "created_at": row[3],
+        }
+        
+        access_token = self.create_access_token(
+            data={"sub": str(user_data["id"]), "phone": user_data["phone_number"]}
+        )
+
         return {
             "status": "verified",
-            "user": {
-                "id": row[0],
-                "phone_number": row[1],
-                "is_verified": bool(row[2]),
-                "created_at": row[3],
-            }
+            "user": user_data,
+            "access_token": access_token,
+            "token_type": "bearer"
         }
 
     async def get_all_users(self) -> list:

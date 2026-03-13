@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     twilio_verify_sid: str = ""
     twilio_whatsapp_from: str = "whatsapp:+14155238886"
 
+    # JWT Authentication
+    jwt_secret: str = "super-secret-key-change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_minutes: int = 1440
+
 
 @lru_cache
 def get_settings() -> Settings:
