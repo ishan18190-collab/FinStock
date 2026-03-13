@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Smartphone, Lock, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Phone, Smartphone, Lock, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -20,9 +21,9 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    // Simulate sending OTP or call backend
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      // The backend route is the same as the auth service handles both signup (new user creation) and login via OTP
       const res = await fetch(`${apiBase}/api/v1/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,7 +37,6 @@ export default function LoginPage() {
         setError(data.detail || "Verification failed. Check your connectivity.");
       }
     } catch (err) {
-       // Check if we should fallback to a "demo" mode or just error
        setError("Identity service unreachable. Verify backend status.");
     } finally {
       setIsLoading(false);
@@ -58,11 +58,9 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (res.ok) {
-        // Store token and user
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify(data.user));
         
-        // Success feedback then redirect
         setTimeout(() => {
           router.push("/");
           router.refresh();
@@ -77,9 +75,14 @@ export default function LoginPage() {
     }
   };
 
+  const toggleMode = () => {
+    setMode(mode === "login" ? "signup" : "login");
+    setError("");
+    setStep("phone");
+  };
+
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4 py-20 relative overflow-hidden bg-bg">
-      {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-accent/20 blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]" />
@@ -93,13 +96,13 @@ export default function LoginPage() {
         <div className="bg-panel border border-border/50 rounded-3xl p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-md relative overflow-hidden">
           <div className="mb-10 flex flex-col items-center">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center shadow-lg shadow-accent/20 mb-6 transition-transform hover:scale-110">
-              <ShieldCheck className="h-8 w-8 text-white" />
+              {mode === "login" ? <ShieldCheck className="h-8 w-8 text-white" /> : <UserPlus className="h-8 w-8 text-white" />}
             </div>
             <h1 className="text-3xl font-extrabold font-[var(--font-space)] tracking-tight text-text text-center">
-              Forensics Portal
+              {mode === "login" ? "Forensics Portal" : "Join Intelligence"}
             </h1>
             <p className="mt-2 text-muted text-sm font-medium text-center">
-              Restricted Intelligence Access
+              {mode === "login" ? "Restricted Access Only" : "Create your analyst workspace"}
             </p>
           </div>
 
@@ -151,15 +154,21 @@ export default function LoginPage() {
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      Enter Intelligence Link
+                      {mode === "login" ? "Request Access Link" : "Generate Member Link"}
                       <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
                 </Button>
                 
-                <p className="text-[10px] text-center text-muted/50 font-medium px-4">
-                  By linking your mobile identity, you acknowledge the sensitive nature of the financial intelligence provided.
-                </p>
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-xs font-bold text-muted hover:text-accent transition-colors"
+                  >
+                    {mode === "login" ? "New to Forensics? Register" : "Already registered? Sign in"}
+                  </button>
+                </div>
               </motion.form>
             ) : (
               <motion.form 
@@ -172,7 +181,7 @@ export default function LoginPage() {
               >
                 <div className="text-center">
                   <p className="text-sm font-semibold text-text">
-                    Verifying Link for
+                    Verifying Identity for
                   </p>
                   <p className="text-xs font-mono text-accent bg-accent/5 inline-block px-3 py-1 rounded-full mt-1">
                     {phone}
@@ -228,7 +237,7 @@ export default function LoginPage() {
                     onClick={() => setStep("phone")}
                     className="w-full text-xs font-bold text-muted/60 hover:text-accent transition-colors"
                   >
-                    Identity Incorrect? Go Back
+                    Incorrect Number? Go Back
                   </button>
                 </div>
               </motion.form>
