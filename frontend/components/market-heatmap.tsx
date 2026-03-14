@@ -23,23 +23,23 @@ const INDEX_OPTIONS = [
 ];
 
 const LEGEND = [
-  { label: "Above +5%", className: "bg-emerald-700/90 text-white" },
-  { label: "+2 to +5%", className: "bg-emerald-600/85 text-white" },
-  { label: "0 to +2%", className: "bg-emerald-500/80 text-white" },
-  { label: "0%", className: "bg-zinc-500/80 text-white" },
-  { label: "-2 to 0%", className: "bg-rose-400/90 text-white" },
-  { label: "-5 to -2%", className: "bg-rose-500/90 text-white" },
-  { label: "Below -5%", className: "bg-red-700/95 text-white" }
+  { label: "Above +5%", className: "bg-[#1B4D3E]/90 text-[#DEEFE7] border-[#2A6B56]" },
+  { label: "+2 to +5%", className: "bg-[#2D5A4C]/85 text-[#DEEFE7] border-[#3E7D69]" },
+  { label: "0 to +2%", className: "bg-[#3D6B5E]/80 text-[#DEEFE7] border-[#4E8F7C]" },
+  { label: "0%", className: "bg-[#28403D]/80 text-[#DEEFE7] border-[#3D5A73]/30" },
+  { label: "-2 to 0%", className: "bg-[#5D3F3F]/90 text-[#DEEFE7] border-[#7D5A5A]" },
+  { label: "-5 to -2%", className: "bg-[#7D3F3F]/90 text-[#DEEFE7] border-[#9D5A5A]" },
+  { label: "Below -5%", className: "bg-[#9D2F2F]/95 text-[#DEEFE7] border-[#BD4A4A]" }
 ];
 
 function tileStyle(changePercent: number) {
-  if (changePercent > 5) return "bg-emerald-700/90 border-emerald-400/40 text-white";
-  if (changePercent > 2) return "bg-emerald-600/85 border-emerald-400/35 text-white";
-  if (changePercent > 0) return "bg-emerald-500/80 border-emerald-300/35 text-white";
-  if (changePercent === 0) return "bg-zinc-500/80 border-zinc-300/35 text-white";
-  if (changePercent > -2) return "bg-rose-400/90 border-rose-200/40 text-white";
-  if (changePercent > -5) return "bg-rose-500/90 border-rose-300/35 text-white";
-  return "bg-red-700/95 border-red-400/35 text-white";
+  if (changePercent > 5) return "bg-[#1B4D3E]/90 border-[#2A6B56] text-[#DEEFE7]";
+  if (changePercent > 2) return "bg-[#2D5A4C]/85 border-[#3E7D69] text-[#DEEFE7]";
+  if (changePercent > 0) return "bg-[#3D6B5E]/80 border-[#4E8F7C] text-[#DEEFE7]";
+  if (changePercent === 0) return "bg-[#28403D]/90 border-[#3D5A73]/30 text-[#DEEFE7]";
+  if (changePercent > -2) return "bg-[#5D3F3F]/90 border-[#7D5A5A] text-[#DEEFE7]";
+  if (changePercent > -5) return "bg-[#7D3F3F]/90 border-[#9D5A5A] text-[#DEEFE7]";
+  return "bg-[#9D2F2F]/95 border-[#BD4A4A] text-[#DEEFE7]";
 }
 
 function formatSigned(value: number) {

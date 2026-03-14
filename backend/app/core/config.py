@@ -10,7 +10,7 @@ _ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "Financial Forensics AI API"
+    app_name: str = "FinStock API"
     app_env: str = "development"
     app_debug: bool = True
 

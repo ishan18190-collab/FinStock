@@ -16,6 +16,8 @@ import { SmartScore } from "@/components/sections/smart-score";
 import { StockSectionTabs } from "@/components/sections/stock-section-tabs";
 import { TechnicalsSection } from "@/components/sections/technicals-section";
 import { fetchDashboard } from "@/lib/api";
+import DotGrid from "@/components/ui/dot-grid";
+import ScrollFloat from "@/components/ui/scroll-float";
 
 const PriceSidebar = dynamic(() => import("@/components/sections/price-sidebar").then((m) => m.PriceSidebar), { ssr: false });
 const FinancialsSection = dynamic(() => import("@/components/sections/financials-section").then((m) => m.FinancialsSection), { ssr: false });
@@ -64,127 +66,157 @@ export default async function StockDetailsPage({ params }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <p className="text-sm text-muted">
-          <Link href="/" className="hover:text-text">
-            Dashboard
-          </Link>{" "}
-          / {symbol}
-        </p>
-        <div className="w-full max-w-lg">
-          <StockSearch />
+    <div className="relative space-y-4 min-h-screen">
+       {/* Background Grid */}
+       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none overflow-hidden">
+        <DotGrid
+          dotSize={2}
+          gap={30}
+          baseColor="#3D5A73"
+          activeColor="#5227FF"
+          proximity={100}
+        />
+      </div>
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <p className="text-sm text-muted">
+            <Link href="/" className="hover:text-text">
+              Dashboard
+            </Link>{" "}
+            / {symbol}
+          </p>
+          <div className="w-full max-w-lg">
+            <StockSearch />
+          </div>
         </div>
+
+        <div className="grid gap-4 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+          <aside className="min-w-0">
+            <PriceSidebar data={data} />
+          </aside>
+
+          <section className="min-w-0 space-y-4">
+            <StockSectionTabs />
+
+            <section id="overview" className="space-y-4">
+              <CompanyOverview
+                description={data.profile.description}
+                incorporationYear={data.profile.incorporationYear}
+                headquarters={data.profile.headquarters}
+                website={data.profile.website}
+                chairman={data.profile.chairman}
+                previousName={data.profile.previousName}
+              />
+              <MetricsGrid metrics={data.metrics} keyRatioTrends={data.financials.keyRatioTrends} />
+            </section>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <SmartScore
+                score={data.smartScore.score}
+                dimensions={data.smartScore.dimensions}
+                aiExplanation={data.smartScore.aiExplanation || data.smartScore.explanation}
+                methodology={data.smartScore.methodology}
+                label={data.smartScore.label}
+              />
+              <RiskScore
+                score={data.riskScore.score}
+                components={data.riskScore.components}
+                aiExplanation={data.riskScore.aiExplanation || data.riskScore.explanation}
+                methodology={data.riskScore.methodology}
+                label={data.riskScore.label}
+              />
+            </div>
+
+            <section>
+              <ScrollFloat
+                animationDuration={0.6}
+                stagger={0.02}
+                textClassName="text-xl font-bold font-[var(--font-space)]"
+                containerClassName="!my-2"
+              >
+                Performance Profile
+              </ScrollFloat>
+              <ReturnsPanel summary={data.returnsSummary} heatmap={data.returnsHeatmap} />
+            </section>
+
+            <TechnicalsSection technicals={data.technicals} />
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <ReturnsCalculator
+                symbol={symbol}
+                currentPrice={data.price.cmp}
+                aiTarget={data.price.aiTarget}
+                mlConfidence={data.smartScore.mlConfidence}
+                upProbability={data.smartScore.validation?.upProbability}
+              />
+              <BrokerageSummary brokerage={data.brokerageResearch} />
+            </div>
+
+            <section id="corporate-actions">
+               <ScrollFloat
+                animationDuration={0.6}
+                stagger={0.02}
+                textClassName="text-xl font-bold font-[var(--font-space)] py-2"
+              >
+                Corporate Intelligence
+              </ScrollFloat>
+              <CorporateActionsSection actions={data.corporateActions} />
+            </section>
+
+            <section id="quarterly-results">
+              <QuarterlyResultsSection
+                quarterly={data.financials.quarterly}
+                standalone={data.financials.quarterlyStandalone}
+                consolidated={data.financials.quarterlyConsolidated}
+                standaloneDetailed={data.financials.quarterlyDetailedStandalone}
+                consolidatedDetailed={data.financials.quarterlyDetailedConsolidated}
+              />
+            </section>
+
+            <section id="financials">
+              <FinancialsSection
+                growthSnapshot={data.financials.growthSnapshot}
+                quarterly={data.financials.quarterly}
+                yearly={data.financials.yearly}
+                incomeStatement={data.financials.incomeStatement}
+                balanceSheet={data.financials.balanceSheet}
+                cashFlow={data.financials.cashFlow}
+              />
+            </section>
+
+            <section id="shareholding">
+              <ShareholdingSection
+                quarter={data.shareholding.quarter}
+                promoters={data.shareholding.promoters}
+                fii={data.shareholding.fii}
+                dii={data.shareholding.dii}
+                publicHolding={data.shareholding.public}
+                history={data.shareholding.history}
+                topHolders={data.shareholding.topHolders}
+                sourceUrl={data.shareholding.sourceUrl}
+              />
+            </section>
+
+            <section id="key-ratios">
+              <KeyRatiosSection metrics={data.metrics} trends={data.financials.keyRatioTrends} />
+            </section>
+
+            <section id="documents">
+              <DocumentsSection
+                annualReports={data.documents.annualReports}
+                investorPresentations={data.documents.investorPresentations}
+                creditRatings={data.documents.creditRatings}
+                exchangeFilings={data.documents.exchangeFilings}
+              />
+            </section>
+
+            <NewsSection news={data.news} />
+          </section>
+        </div>
+
+        <AIChat symbol={symbol} />
       </div>
-
-      <div className="grid gap-4 2xl:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
-        <aside className="min-w-0">
-          <PriceSidebar data={data} />
-        </aside>
-
-        <section className="min-w-0 space-y-4">
-          <StockSectionTabs />
-
-          <section id="overview" className="space-y-4">
-            <CompanyOverview
-              description={data.profile.description}
-              incorporationYear={data.profile.incorporationYear}
-              headquarters={data.profile.headquarters}
-              website={data.profile.website}
-              chairman={data.profile.chairman}
-              previousName={data.profile.previousName}
-            />
-            <MetricsGrid metrics={data.metrics} keyRatioTrends={data.financials.keyRatioTrends} />
-          </section>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <SmartScore
-              score={data.smartScore.score}
-              dimensions={data.smartScore.dimensions}
-              aiExplanation={data.smartScore.aiExplanation || data.smartScore.explanation}
-              methodology={data.smartScore.methodology}
-              label={data.smartScore.label}
-            />
-            <RiskScore
-              score={data.riskScore.score}
-              components={data.riskScore.components}
-              aiExplanation={data.riskScore.aiExplanation || data.riskScore.explanation}
-              methodology={data.riskScore.methodology}
-              label={data.riskScore.label}
-            />
-          </div>
-
-          <ReturnsPanel summary={data.returnsSummary} heatmap={data.returnsHeatmap} />
-
-          <TechnicalsSection technicals={data.technicals} />
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <ReturnsCalculator
-              symbol={symbol}
-              currentPrice={data.price.cmp}
-              aiTarget={data.price.aiTarget}
-              mlConfidence={data.smartScore.mlConfidence}
-              upProbability={data.smartScore.validation?.upProbability}
-            />
-            <BrokerageSummary brokerage={data.brokerageResearch} />
-          </div>
-
-          <section id="corporate-actions">
-            <CorporateActionsSection actions={data.corporateActions} />
-          </section>
-
-          <section id="quarterly-results">
-            <QuarterlyResultsSection
-              quarterly={data.financials.quarterly}
-              standalone={data.financials.quarterlyStandalone}
-              consolidated={data.financials.quarterlyConsolidated}
-              standaloneDetailed={data.financials.quarterlyDetailedStandalone}
-              consolidatedDetailed={data.financials.quarterlyDetailedConsolidated}
-            />
-          </section>
-
-          <section id="financials">
-            <FinancialsSection
-              growthSnapshot={data.financials.growthSnapshot}
-              quarterly={data.financials.quarterly}
-              yearly={data.financials.yearly}
-              incomeStatement={data.financials.incomeStatement}
-              balanceSheet={data.financials.balanceSheet}
-              cashFlow={data.financials.cashFlow}
-            />
-          </section>
-
-          <section id="shareholding">
-            <ShareholdingSection
-              quarter={data.shareholding.quarter}
-              promoters={data.shareholding.promoters}
-              fii={data.shareholding.fii}
-              dii={data.shareholding.dii}
-              publicHolding={data.shareholding.public}
-              history={data.shareholding.history}
-              topHolders={data.shareholding.topHolders}
-              sourceUrl={data.shareholding.sourceUrl}
-            />
-          </section>
-
-          <section id="key-ratios">
-            <KeyRatiosSection metrics={data.metrics} trends={data.financials.keyRatioTrends} />
-          </section>
-
-          <section id="documents">
-            <DocumentsSection
-              annualReports={data.documents.annualReports}
-              investorPresentations={data.documents.investorPresentations}
-              creditRatings={data.documents.creditRatings}
-              exchangeFilings={data.documents.exchangeFilings}
-            />
-          </section>
-
-          <NewsSection news={data.news} />
-        </section>
-      </div>
-
-      <AIChat symbol={symbol} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Phone, Smartphone, Lock, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DotGrid from "@/components/ui/dot-grid";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -83,9 +84,18 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4 py-20 relative overflow-hidden bg-bg">
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-accent/20 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]" />
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0 opacity-40">
+        <DotGrid
+          dotSize={4}
+          gap={20}
+          baseColor="#3D5A73"
+          activeColor="#5227FF"
+          proximity={120}
+          shockRadius={300}
+          shockStrength={6}
+          resistance={800}
+        />
       </div>
 
       <motion.div 
@@ -99,7 +109,7 @@ export default function LoginPage() {
               {mode === "login" ? <ShieldCheck className="h-8 w-8 text-white" /> : <UserPlus className="h-8 w-8 text-white" />}
             </div>
             <h1 className="text-3xl font-extrabold font-[var(--font-space)] tracking-tight text-text text-center">
-              {mode === "login" ? "Forensics Portal" : "Join Intelligence"}
+              {mode === "login" ? "FinStock Portal" : "Join Intelligence"}
             </h1>
             <p className="mt-2 text-muted text-sm font-medium text-center">
               {mode === "login" ? "Restricted Access Only" : "Create your analyst workspace"}
@@ -166,7 +176,7 @@ export default function LoginPage() {
                     onClick={toggleMode}
                     className="text-xs font-bold text-muted hover:text-accent transition-colors"
                   >
-                    {mode === "login" ? "New to Forensics? Register" : "Already registered? Sign in"}
+                    {mode === "login" ? "New to FinStock? Register" : "Already registered? Sign in"}
                   </button>
                 </div>
               </motion.form>

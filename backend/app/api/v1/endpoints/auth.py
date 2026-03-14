@@ -19,8 +19,13 @@ class VerifyOTPRequest(BaseModel):
 @router.post("/send-otp")
 async def send_otp(req: SendOTPRequest):
     """Send OTP to phone number via Twilio Verify (SMS)."""
+    # Normalize phone
+    phone = req.phone_number.strip().replace(" ", "")
+    if len(phone) == 10 and not phone.startswith("+"):
+        phone = f"+91{phone}"
+    
     try:
-        result = await auth_service.send_otp(req.phone_number)
+        result = await auth_service.send_otp(phone)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -29,8 +34,13 @@ async def send_otp(req: SendOTPRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOTPRequest):
     """Verify OTP and save verified user to DB."""
+    # Normalize phone
+    phone = req.phone_number.strip().replace(" ", "")
+    if len(phone) == 10 and not phone.startswith("+"):
+        phone = f"+91{phone}"
+        
     try:
-        result = await auth_service.verify_otp(req.phone_number, req.otp)
+        result = await auth_service.verify_otp(phone, req.otp)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

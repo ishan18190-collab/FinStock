@@ -16,12 +16,12 @@
 }
 
 .dark {
-  --bg: 199 100% 10%;       /* #002333 */
-  --panel: 199 80% 14%;     /* Slightly lighter than #002333 */
-  --border: 200 13% 73%;    /* #B4BEC9 */
-  --text: 147 67% 88%;      /* #DEEFE7 (light mint) */
-  --muted: 200 13% 73%;     /* #B4BEC9 */
-  --accent: 180 76% 35%;    /* #159A9C */
+  --bg: 171 22% 12%;       /* #182625 - Deep Dark */
+  --panel: 171 23% 20%;    /* #28403D - Surface */
+  --border: 191 13% 31%;   /* #455559 - Muted Border */
+  --text: 147 67% 88%;     /* Light Mint */
+  --muted: 191 13% 45%;    /* Lighter Grayish Blue */
+  --accent: 255 100% 70%;  /* #5227FF equivalent - Vivid Blue */
   --success: 146 72% 56%;
   --danger: 4 81% 61%;
   color-scheme: dark;
@@ -80,18 +80,21 @@ textarea:focus {
 
 .card-surface {
   transition-property: transform, box-shadow, border-color, background-color;
-  transition-duration: 160ms;
+  transition-duration: 250ms;
   transition-timing-function: var(--ease-smooth);
   will-change: transform;
+  @apply backdrop-blur-md;
 }
 
 .card-surface:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(19, 27, 54, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  @apply border-accent/20;
 }
 
 .dark .card-surface:hover {
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 0 40px rgba(82, 39, 255, 0.15);
+  @apply border-accent/40 bg-panel;
 }
 
 .smooth-panel-enter {

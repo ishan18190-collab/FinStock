@@ -54,6 +54,10 @@ class AuthService:
 
     async def send_otp(self, phone_number: str) -> dict:
         """Send OTP via Twilio Verify SMS."""
+        # Test number bypass
+        if phone_number == "+919999999999":
+            return {"status": "pending", "phone_number": phone_number, "message": "Test mode active"}
+
         client = _get_twilio_client()
         verification = client.verify.v2.services(
             _get_verify_sid()
@@ -65,16 +69,21 @@ class AuthService:
 
     async def verify_otp(self, phone_number: str, otp: str) -> dict:
         """Verify OTP and save/update user in DB."""
-        client = _get_twilio_client()
-        check = client.verify.v2.services(
-            _get_verify_sid()
-        ).verification_checks.create(
-            to=phone_number,
-            code=otp
-        )
+        # Test number bypass (OTP is '000000' for test number)
+        if phone_number == "+919999999999":
+            if otp != "000000":
+                raise ValueError("Invalid test OTP")
+        else:
+            client = _get_twilio_client()
+            check = client.verify.v2.services(
+                _get_verify_sid()
+            ).verification_checks.create(
+                to=phone_number,
+                code=otp
+            )
 
-        if check.status != "approved":
-            raise ValueError(f"OTP verification failed: status={check.status}")
+            if check.status != "approved":
+                raise ValueError(f"OTP verification failed: status={check.status}")
 
         # Upsert user as verified
         conn = sqlite3.connect(DB_PATH)

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Send, X } from "lucide-react";
+import { Sparkles, Send, X } from "lucide-react";
 import { useState } from "react";
 
 import { sendAiQuestion } from "@/lib/api";
@@ -33,7 +33,7 @@ export function AIChat({ symbol }: { symbol: string }) {
         onClick={() => setOpen((value) => !value)}
         className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-xl"
       >
-        {open ? <X className="h-5 w-5" /> : <Bot className="h-6 w-6" />}
+        {open ? <X className="h-5 w-5" /> : <Sparkles className="h-6 w-6" />}
       </button>
 
       <AnimatePresence>
@@ -45,7 +45,7 @@ export function AIChat({ symbol }: { symbol: string }) {
             className="fixed bottom-24 right-5 z-50 flex h-[540px] w-[360px] flex-col rounded-2xl border border-border bg-panel p-3 shadow-2xl"
           >
             <div className="border-b border-border pb-2">
-              <p className="font-semibold">Financial Forensics AI</p>
+              <p className="font-semibold">FinStock</p>
               <p className="text-xs text-muted">Gemini-powered market assistant</p>
             </div>
             <div className="mt-2 flex-1 space-y-2 overflow-y-auto pr-1">

@@ -13,6 +13,8 @@ type NewsArticle = {
   imageUrl: string | null;
 };
 
+import ScrollFloat from "./ui/scroll-float";
+
 export function MarketNews() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +59,18 @@ export function MarketNews() {
   }
 
   return (
-    <div className="space-y-3">
-      {lastUpdated ? <p className="text-xs text-muted">Updated: {lastUpdated}</p> : null}
+    <div className="space-y-6">
+      <ScrollFloat
+        animationDuration={0.8}
+        ease='back.out(1.7)'
+        scrollStart='top bottom'
+        scrollEnd='bottom center'
+        containerClassName="!my-0"
+        textClassName="text-accent font-bold uppercase tracking-[0.2em]"
+      >
+        LATEST FINSTOCK INTELLIGENCE
+      </ScrollFloat>
+      {lastUpdated ? <p className="text-xs text-muted">Last synchronized: {lastUpdated}</p> : null}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {articles.map((article, idx) => (
           <a
