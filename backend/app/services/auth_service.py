@@ -1,46 +1,21 @@
-import sqlite3
 import os
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
-from pathlib import Path
 
-from twilio.rest import Client
-
+from supabase import create_client, Client
 from app.core.config import get_settings
 
-# DB path — same file as the rest of the app
-DB_PATH = Path(__file__).resolve().parents[3] / "financial_forensics.db"
 
-
-def _get_twilio_client():
+def _get_supabase_client() -> Client:
     settings = get_settings()
-    return Client(settings.twilio_account_sid, settings.twilio_auth_token)
-
-
-def _get_verify_sid() -> str:
-    return get_settings().twilio_verify_sid
-
-
-def _init_db():
-    """Create users table if it doesn't already exist."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            phone_number TEXT UNIQUE NOT NULL,
-            is_verified INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now'))
-        )
-    """)
-    conn.commit()
-    conn.close()
+    # Raises an error if these aren't configured in .env
+    if not settings.supabase_url or not settings.supabase_key:
+        raise ValueError("Supabase URL and Key must be defined in .env")
+    return create_client(settings.supabase_url, settings.supabase_key)
 
 
 class AuthService:
-    def __init__(self):
-        _init_db()
-
     def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None):
         settings = get_settings()
         to_encode = data.copy()
@@ -53,60 +28,61 @@ class AuthService:
         return encoded_jwt
 
     async def send_otp(self, phone_number: str) -> dict:
-        """Send OTP via Twilio Verify SMS."""
+        """Send OTP via Supabase Auth (SMS)."""
         # Test number bypass
         if phone_number == "+919999999999":
             return {"status": "pending", "phone_number": phone_number, "message": "Test mode active"}
 
-        client = _get_twilio_client()
-        verification = client.verify.v2.services(
-            _get_verify_sid()
-        ).verifications.create(
-            to=phone_number,
-            channel="sms"
-        )
-        return {"status": verification.status, "phone_number": phone_number}
+        supabase = _get_supabase_client()
+        # Supabase sends OTP when you try to sign in with a phone number
+        res = supabase.auth.sign_in_with_otp({"phone": phone_number})
+        
+        return {"status": "pending", "phone_number": phone_number, "message": "OTP sent via Supabase"}
 
     async def verify_otp(self, phone_number: str, otp: str) -> dict:
-        """Verify OTP and save/update user in DB."""
+        """Verify OTP with Supabase Auth."""
         # Test number bypass (OTP is '000000' for test number)
         if phone_number == "+919999999999":
             if otp != "000000":
                 raise ValueError("Invalid test OTP")
-        else:
-            client = _get_twilio_client()
-            check = client.verify.v2.services(
-                _get_verify_sid()
-            ).verification_checks.create(
-                to=phone_number,
-                code=otp
+            
+            # Mock successful login for the test number
+            user_data = {
+                "id": "test-uuid-000",
+                "phone_number": phone_number,
+                "is_verified": True,
+                "created_at": str(datetime.utcnow()),
+            }
+            access_token = self.create_access_token(
+                data={"sub": str(user_data["id"]), "phone": user_data["phone_number"]}
             )
+            return {
+                "status": "verified",
+                "user": user_data,
+                "access_token": access_token,
+                "token_type": "bearer"
+            }
 
-            if check.status != "approved":
-                raise ValueError(f"OTP verification failed: status={check.status}")
+        # Actual Supabase Verification
+        supabase = _get_supabase_client()
+        res = supabase.auth.verify_otp({
+            "phone": phone_number,
+            "token": otp,
+            "type": "sms"
+        })
 
-        # Upsert user as verified
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("""
-            INSERT INTO users (phone_number, is_verified)
-            VALUES (?, 1)
-            ON CONFLICT(phone_number) DO UPDATE SET is_verified = 1
-        """, (phone_number,))
-        conn.commit()
-
-        row = conn.execute(
-            "SELECT id, phone_number, is_verified, created_at FROM users WHERE phone_number = ?",
-            (phone_number,)
-        ).fetchone()
-        conn.close()
+        if not res.user:
+            raise ValueError("OTP verification failed: Invalid code or number")
 
         user_data = {
-            "id": row[0],
-            "phone_number": row[1],
-            "is_verified": bool(row[2]),
-            "created_at": row[3],
+            "id": res.user.id,
+            "phone_number": res.user.phone,
+            "is_verified": True,
+            "created_at": res.user.created_at,
         }
         
+        # Alternatively, we could just return res.session.access_token from Supabase,
+        # but to keep the frontend completely untouched we'll drop our own JWT here.
         access_token = self.create_access_token(
             data={"sub": str(user_data["id"]), "phone": user_data["phone_number"]}
         )
@@ -119,12 +95,18 @@ class AuthService:
         }
 
     async def get_all_users(self) -> list:
-        conn = sqlite3.connect(DB_PATH)
-        rows = conn.execute(
-            "SELECT id, phone_number, is_verified, created_at FROM users ORDER BY created_at DESC"
-        ).fetchall()
-        conn.close()
+        # Instead of SQLite, we now pull from Supabase's auth.users or public.profiles
+        supabase = _get_supabase_client()
+        
+        try:
+            # We assume you have a public.profiles table created that mirrors auth.users
+            res = supabase.table("profiles").select("*").execute()
+            rows = res.data
+        except Exception:
+            # If the profiles table isn't set up yet, fallback to empty
+            rows = []
+            
         return [
-            {"id": r[0], "phone_number": r[1], "is_verified": bool(r[2]), "created_at": r[3]}
+            {"id": r["id"], "phone_number": r["phone_number"], "is_verified": r.get("is_verified", True), "created_at": r["created_at"]}
             for r in rows
         ]

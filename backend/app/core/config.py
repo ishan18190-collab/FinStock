@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     twilio_verify_sid: str = ""
     twilio_whatsapp_from: str = "whatsapp:+14155238886"
 
+    # Supabase
+    supabase_url: str = ""
+    supabase_key: str = ""
+
     # JWT Authentication
     jwt_secret: str = "super-secret-key-change-me-in-production"
     jwt_algorithm: str = "HS256"
