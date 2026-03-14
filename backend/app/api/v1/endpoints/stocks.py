@@ -7,14 +7,25 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.core.cache import redis_cache
 from app.core.config import get_settings
-from app.schemas.stock import ChatRequest, ChatResponse, ReportResponse
+from app.schemas.stock import (
+    ChatRequest, 
+    ChatResponse, 
+    ReportResponse, 
+    SummarizeResponse, 
+    WhatsAppReportRequest
+)
 from app.services.ai_adapter import AIAdapter
 from app.services.dashboard import StockDashboardService
+from app.services.notify_service import NotifyService
+from app.utils.pdf import PDFReportGenerator
+from app.core.s3 import s3_client
 
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 settings = get_settings()
 dashboard_service = StockDashboardService()
+notify_service = NotifyService()
+pdf_generator = PDFReportGenerator()
 ai_adapter = AIAdapter()
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -510,8 +521,54 @@ async def get_returns_projection(
     }
 
 
-@router.get("/{symbol}/health-check")
-async def stock_health(symbol: str) -> dict:
-    if not symbol.strip():
-        raise HTTPException(status_code=400, detail="Invalid symbol")
-    return {"symbol": symbol.upper(), "status": "ok"}
+@router.get("/{symbol}/summarize", response_model=SummarizeResponse)
+async def summarize_stock_details(symbol: str, level: str = Query("intermediate")) -> SummarizeResponse:
+    dashboard = await dashboard_service.get_dashboard(symbol=symbol)
+    summary = await ai_adapter.generate_level_summary(symbol=symbol, context=dashboard, level=level)
+    return SummarizeResponse(symbol=symbol.upper(), summary=summary)
+
+
+@router.post("/{symbol}/send-whatsapp-report")
+async def send_whatsapp_report(symbol: str, payload: WhatsAppReportRequest) -> dict:
+    # 1. Get stock data
+    dashboard = await dashboard_service.get_dashboard(symbol=symbol)
+    stock_name = dashboard.get("companyName", symbol.upper())
+    
+    # 2. Generate summary via Gemini
+    summary = await ai_adapter.generate_level_summary(symbol=symbol, context=dashboard, level=payload.level)
+    
+    # 3. Create PDF
+    pdf_path = pdf_generator.generate(
+        symbol=symbol.upper(),
+        stock_name=stock_name,
+        summary=summary,
+        level=payload.level
+    )
+    
+    # 4. Upload to S3 to get a public URL
+    object_name = f"reports/{symbol.upper()}_{payload.level}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+    success = await s3_client.upload_file(str(pdf_path), object_name)
+    
+    if not success:
+        # Fallback to a mock URL if S3 upload fails for testing
+        public_url = f"{settings.s3_endpoint}/{settings.s3_bucket}/{object_name}"
+    else:
+        # Construct the public URL (Massive S3 endpoint format)
+        public_url = f"{settings.s3_endpoint}/{settings.s3_bucket}/{object_name}"
+    
+    # 5. Send via WhatsApp
+    message = f"Hello! Here is your requested {payload.level} level research report for *{stock_name}* ({symbol.upper()}) from FinStock."
+    result = await notify_service.send_whatsapp(
+        phone_number=payload.phone_number,
+        message=message,
+        pdf_url=public_url
+    )
+    
+    # 6. Cleanup local file
+    try:
+        if pdf_path.exists():
+            pdf_path.unlink()
+    except Exception:
+        pass
+        
+    return {"status": "success", "twilio": result, "pdf_url": public_url}

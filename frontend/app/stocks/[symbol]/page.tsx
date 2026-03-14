@@ -15,6 +15,7 @@ import { RiskScore } from "@/components/sections/risk-score";
 import { SmartScore } from "@/components/sections/smart-score";
 import { StockSectionTabs } from "@/components/sections/stock-section-tabs";
 import { TechnicalsSection } from "@/components/sections/technicals-section";
+import { AISummarySection } from "@/components/sections/ai-summary-section";
 import { fetchDashboard } from "@/lib/api";
 import DotGrid from "@/components/ui/dot-grid";
 import ScrollFloat from "@/components/ui/scroll-float";
@@ -109,6 +110,7 @@ export default async function StockDetailsPage({ params }: Props) {
                 previousName={data.profile.previousName}
               />
               <MetricsGrid metrics={data.metrics} keyRatioTrends={data.financials.keyRatioTrends} />
+              <AISummarySection symbol={symbol} />
             </section>
 
             <div className="grid gap-4 xl:grid-cols-2">

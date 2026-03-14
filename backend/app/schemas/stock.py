@@ -13,3 +13,13 @@ class ChatResponse(BaseModel):
 class ReportResponse(BaseModel):
     symbol: str
     report_markdown: str
+
+
+class SummarizeResponse(BaseModel):
+    symbol: str
+    summary: str
+
+
+class WhatsAppReportRequest(BaseModel):
+    level: str = Field(..., pattern="^(beginner|intermediate|pro)$")
+    phone_number: str = Field(..., min_length=10, max_length=15)

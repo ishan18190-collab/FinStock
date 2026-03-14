@@ -58,8 +58,8 @@ export function MarketTicker() {
   }, [rows]);
 
   const durationSeconds = useMemo(() => {
-    // Extra-slow tape for better readability across large symbol sets.
-    return Math.max(80, Math.min(1800, Math.round(tape.length * 0.3)));
+    // Significantly slower tape for better readability.
+    return Math.max(180, Math.min(3600, Math.round(tape.length * 1.5)));
   }, [tape.length]);
 
   if (!tape.length) {

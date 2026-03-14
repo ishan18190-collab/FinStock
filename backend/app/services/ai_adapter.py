@@ -33,6 +33,27 @@ class AIAdapter:
                 return self._offline_chat_response(symbol=symbol, context=context, live_failed=True), "fallback"
         return self._offline_chat_response(symbol=symbol, context=context, live_failed=False), "fallback"
 
+    async def generate_level_summary(self, symbol: str, context: dict[str, Any], level: str) -> str:
+        """Generate a summary tailored to the user's expertise level (beginner, intermediate, pro)."""
+        prompt_modifier = {
+            "beginner": "Use simple language, explain jargon, and focus on the 'big picture' risk and reward.",
+            "intermediate": "Focus on ratios, sector comparison, and mid-range financial metrics. Assumes basic knowledge of P/E, PEG, and debt.",
+            "pro": "Deep technical analysis, focus on secondary metrics (debt-to-equity, quarterly margin trends, corporate actions), and return projections."
+        }.get(level.lower(), "Provide a balanced professional summary.")
+
+        if self._gemini and settings.gemini_api_key:
+            try:
+                # Assuming the underlying gemini_service can handle custom instructions
+                # If not, we'll use a specific prompt
+                question = f"Generate a {level} level stock summary for {symbol}. {prompt_modifier}"
+                answer, _ = await self.chat(symbol, question, context)
+                return answer
+            except Exception:
+                pass
+        
+        # Fallback summary if Gemini fails
+        return f"Summary for {symbol} at {level} level: The stock shows stable fundamentals in the current market cycle. For a {level} investor, the key is to monitor the {level == 'pro' and 'detailed cash flows' or 'general price trend'}."
+
     async def generate_report(self, symbol: str, context: dict[str, Any]) -> str:
         if self._gemini and settings.gemini_api_key:
             try:

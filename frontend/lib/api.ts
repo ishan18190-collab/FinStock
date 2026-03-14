@@ -245,3 +245,28 @@ export async function fetchMarketNews(options: { force?: boolean } = {}) {
     throw err;
   }
 }
+export async function generateStockSummary(symbol: string, level: string = "intermediate"): Promise<{ summary: string }> {
+  try {
+    const res = await fetch(`${PUBLIC_BASE}/api/v1/stocks/${symbol}/summarize?level=${level}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Summary failed");
+    return await res.json();
+  } catch (error) {
+    return { summary: "Could not generate summary at this time. Please try again later." };
+  }
+}
+
+export async function sendWhatsAppReport(symbol: string, phoneNumber: string, level: string): Promise<{ status: string; pdf_url?: string }> {
+  try {
+    const res = await fetch(`${PUBLIC_BASE}/api/v1/stocks/${symbol}/send-whatsapp-report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone_number: phoneNumber, level }),
+    });
+    if (!res.ok) throw new Error("Failed to send WhatsApp report");
+    return await res.json();
+  } catch (error) {
+    throw error;
+  }
+}
