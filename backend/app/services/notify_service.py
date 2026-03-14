@@ -1,12 +1,10 @@
-import sqlite3
-from pathlib import Path
+import os
 from typing import Optional
 
 from twilio.rest import Client
+from supabase import create_client, Client as SupabaseClient
 
 from app.core.config import get_settings
-
-DB_PATH = Path(__file__).resolve().parents[3] / "financial_forensics.db"
 
 
 def _get_twilio_client():
@@ -16,6 +14,11 @@ def _get_twilio_client():
 
 def _get_whatsapp_from() -> str:
     return get_settings().twilio_whatsapp_from
+
+
+def _get_supabase_client() -> SupabaseClient:
+    settings = get_settings()
+    return create_client(settings.supabase_url, settings.supabase_key)
 
 
 class NotifyService:
@@ -40,17 +43,21 @@ class NotifyService:
         self, message: str, pdf_url: Optional[str] = None
     ) -> dict:
         """Send a WhatsApp message to all verified users."""
-        conn = sqlite3.connect(DB_PATH)
-        rows = conn.execute(
-            "SELECT phone_number FROM users WHERE is_verified = 1"
-        ).fetchall()
-        conn.close()
+        supabase = _get_supabase_client()
+        
+        # We query the public.profiles table instead of the SQLite DB
+        try:
+            res = supabase.table("profiles").select("phone_number").execute()
+            rows = res.data
+        except Exception:
+            rows = []
 
         if not rows:
             return {"status": "no_verified_users", "sent": 0}
 
         results = []
-        for (phone_number,) in rows:
+        for row in rows:
+            phone_number = row["phone_number"]
             try:
                 result = await self.send_whatsapp(phone_number, message, pdf_url)
                 results.append({"phone": phone_number, "status": result["status"]})
