@@ -1,12 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Smartphone, Lock, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle, UserPlus } from "lucide-react";
+import { Phone, ArrowRight, Loader2, CheckCircle2, ShieldCheck, AlertCircle, UserPlus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DotGrid from "@/components/ui/dot-grid";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+
+/** Normalize phone for Indian numbers: 9876543210, 91 987..., +91 987... → +919876543210 */
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  const last10 = digits.slice(-10);
+  if (last10.length === 10 && /^[6-9]/.test(last10)) return `+91${last10}`;
+  return "";
+}
+
+function parseError(data: unknown): string {
+  if (typeof data === "string") return data;
+  if (data && typeof data === "object" && "detail" in data) {
+    const d = (data as { detail: unknown }).detail;
+    if (typeof d === "string") return d;
+    if (Array.isArray(d) && d[0]?.msg) return d[0].msg;
+    if (typeof d === "object" && d !== null && "msg" in d) return String((d as { msg: unknown }).msg);
+  }
+  return "Something went wrong. Please try again.";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,65 +37,81 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSendOTP = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalized = normalizePhone(phone);
+    if (!normalized || normalized.length < 12) {
+      setError("Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
     setIsLoading(true);
     setError("");
-
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
-      // The backend route is the same as the auth service handles both signup (new user creation) and login via OTP
-      const res = await fetch(`${apiBase}/api/v1/auth/send-otp`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: phone }),
+        body: JSON.stringify({ phone_number: normalized }),
       });
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        setPhone(normalized);
+        setOtp("");
         setStep("otp");
+        setResendCooldown(60);
+        const interval = setInterval(() => {
+          setResendCooldown((c) => {
+            if (c <= 1) clearInterval(interval);
+            return Math.max(0, c - 1);
+          });
+        }, 1000);
       } else {
-        setError(data.detail || "Verification failed. Check your connectivity.");
+        setError(parseError(data));
       }
-    } catch (err) {
-       setError("Identity service unreachable. Verify backend status.");
+    } catch {
+      setError("Cannot reach server. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [phone]);
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
+  const handleVerifyOTP = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!otp || otp.length < 4) {
+      setError("Enter the 6-digit code from your SMS.");
+      return;
+    }
     setIsLoading(true);
     setError("");
-
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
-      const res = await fetch(`${apiBase}/api/v1/auth/verify-otp`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: phone, otp }),
+        body: JSON.stringify({ phone_number: phone, otp: otp.trim() }),
       });
-
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        
         setTimeout(() => {
           router.push("/");
           router.refresh();
-        }, 800);
+        }, 600);
       } else {
-        setError(data.detail || "Security credentials rejected.");
+        setError(parseError(data));
       }
-    } catch (err) {
-      setError("Authorization timeout. Please try again.");
+    } catch {
+      setError("Verification failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [phone, otp, router]);
+
+  const handleResendOTP = useCallback(() => {
+    if (resendCooldown > 0) return;
+    handleSendOTP({ preventDefault: () => {} } as React.FormEvent);
+  }, [resendCooldown, handleSendOTP]);
 
   const toggleMode = () => {
     setMode(mode === "login" ? "signup" : "login");
@@ -136,7 +173,9 @@ export default function LoginPage() {
                     </span>
                     <Input
                       required
-                      placeholder="+91 999 999 9999"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="9876543210 or +91 9876543210"
                       className="pl-12 py-7 bg-bg/50 border-border/40 focus:border-accent/50 focus:ring-accent/10 transition-all rounded-2xl"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -206,11 +245,14 @@ export default function LoginPage() {
                     <Input
                       autoFocus
                       required
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={6}
-                      placeholder="0   0   0   0   0   0"
+                      placeholder="000000"
                       className="text-center text-3xl font-bold font-mono py-8 bg-bg/50 border-border/40 focus:border-accent/50 focus:ring-accent/10 transition-all rounded-2xl tracking-[0.4em]"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     />
                   </div>
                 </div>
@@ -242,13 +284,30 @@ export default function LoginPage() {
                     )}
                   </Button>
                   
-                  <button
-                    type="button"
-                    onClick={() => setStep("phone")}
-                    className="w-full text-xs font-bold text-muted/60 hover:text-accent transition-colors"
-                  >
-                    Incorrect Number? Go Back
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      disabled={resendCooldown > 0 || isLoading}
+                      className="flex items-center justify-center gap-2 text-xs font-bold text-muted/60 hover:text-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resendCooldown > 0 ? (
+                        <>Resend code in {resendCooldown}s</>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Resend OTP
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStep("phone"); setError(""); setOtp(""); setResendCooldown(0); }}
+                      className="w-full text-xs font-bold text-muted/60 hover:text-accent transition-colors"
+                    >
+                      Incorrect Number? Go Back
+                    </button>
+                  </div>
                 </div>
               </motion.form>
             )}

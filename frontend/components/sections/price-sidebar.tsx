@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Maximize2, X } from "lucide-react";
@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { PriceChart } from "@/components/charts/price-chart";
 import { MarketStatusBadge } from "@/components/market-status-badge";
+import { SendToWhatsAppButton } from "@/components/send-to-whatsapp-button";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { DashboardData } from "@/lib/types";
@@ -140,6 +141,13 @@ export function PriceSidebar({ data }: { data: DashboardData }) {
               className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-lime-400"
             />
           </div>
+        </div>
+
+        <div className="mt-4">
+          <SendToWhatsAppButton
+            symbol={data.symbol}
+            className="w-full"
+          />
         </div>
 
         <div className="mt-4 rounded-xl border border-border/70 p-3">

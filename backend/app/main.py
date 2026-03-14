@@ -18,7 +18,13 @@ async def lifespan(_: FastAPI):
     await redis_cache.disconnect()
 
 
-app = FastAPI(title=settings.app_name, debug=settings.app_debug, lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    debug=settings.app_debug,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 app.add_middleware(
     CORSMiddleware,
