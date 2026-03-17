@@ -1,5 +1,7 @@
 # FinStock
 
+Website PreView - https://drive.google.com/file/d/1_wSzypH_pZ6kn4YTmnXRSE-ShkKM9vgG/view?usp=drive_link
+
 AI-powered **Indian stock research platform** built with **Next.js 14, FastAPI, PostgreSQL, Redis, and Gemini AI**.
 
 This platform provides intelligent stock analysis, AI-generated research reports, and financial insights for Indian markets.
