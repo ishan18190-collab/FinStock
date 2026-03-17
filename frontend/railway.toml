@@ -1,8 +1,5 @@
 [build]
-nixpacksVersion = "latest"
+builder = "NIXPACKS"
 
 [deploy]
 numReplicas = 1
-
-[checks]
-security = false
